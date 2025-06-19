@@ -1,0 +1,17 @@
+# Swap/backup/undo
+*.swp
+*.swo
+*.bak
+*.tmp
+*.log
+
+# macOS
+.DS_Store
+
+# Plugin data
+todo_sidebar.json
+
+# Neovim specific
+.venv
+nvim-data/
+.
