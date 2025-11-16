@@ -84,6 +84,9 @@ function M.toggle_check()
 	if real_index then
 		todo.toggle_done(real_index)
 		window.render()
+		local todos = todo.get_all()
+		local status = todos[real_index].done and "completed" or "marked as pending"
+		vim.notify("TODO " .. status, vim.log.levels.INFO)
 	end
 end
 
@@ -91,8 +94,11 @@ end
 function M.add_item()
 	vim.ui.input({ prompt = "New TODO: " }, function(input)
 		if input and input ~= "" then
-			todo.add(input)
-			window.render()
+			local success = todo.add(input)
+			if success then
+				window.render()
+				vim.notify("TODO added successfully", vim.log.levels.INFO)
+			end
 		end
 	end)
 end
@@ -113,6 +119,7 @@ function M.delete_item()
 	if real_index then
 		todo.delete(real_index)
 		window.render()
+		vim.notify("TODO deleted", vim.log.levels.INFO)
 	end
 end
 
@@ -132,6 +139,9 @@ function M.toggle_pin()
 	if real_index then
 		todo.toggle_pin(real_index)
 		window.render()
+		local todos = todo.get_all()
+		local status = todos[real_index].pinned and "pinned" or "unpinned"
+		vim.notify("TODO " .. status, vim.log.levels.INFO)
 	end
 end
 
@@ -156,8 +166,11 @@ function M.edit_item()
 				default = todos[real_index].text,
 			}, function(input)
 				if input and input ~= "" then
-					todo.update_text(real_index, input)
-					window.render()
+					local success = todo.update_text(real_index, input)
+					if success then
+						window.render()
+						vim.notify("TODO updated", vim.log.levels.INFO)
+					end
 				end
 			end)
 		end

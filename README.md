@@ -75,6 +75,8 @@ Once the sidebar is open, use these keys to manage your TODOs:
 | `q` | Quit | Close the sidebar |
 | `?` | Help Menu | Toggle the help menu display |
 
+**Note:** The plugin provides visual feedback for all operations via notifications.
+
 ### TODO Item Features
 
 - **Checkboxes**: Visual indicators for completed/pending tasks
@@ -89,6 +91,38 @@ TODOs are stored as JSON in your Neovim data directory. To find the exact locati
 ```lua
 :lua print(vim.fn.stdpath("data") .. "/todo_sidebar.json")
 ```
+
+The plugin automatically handles:
+- Creating the storage file on first use
+- Backing up corrupted files with timestamp
+- Recovering from parse errors
+- Validating TODO data on load
+
+## 🔧 Troubleshooting
+
+### Plugin doesn't load
+- Ensure you've called `require("todo-sidebar").setup()` in your config
+- Check for errors with `:messages`
+- Verify the plugin is installed correctly with your package manager
+
+### TODOs not persisting
+- Check file permissions in your data directory: `:lua print(vim.fn.stdpath("data"))`
+- Look for error notifications when saving
+- Verify the storage file can be written: `:lua require("todo-sidebar.persistence").save_todos({})`
+
+### Sidebar doesn't open
+- Check if the keybinding is conflicting: `:map <leader>td`
+- Try calling directly: `:lua require("todo-sidebar").open()`
+- Ensure your terminal/GUI supports floating windows
+
+### Corrupted TODO file
+The plugin automatically creates backups of corrupted files with timestamps (e.g., `todo_sidebar.json.backup.20250116_120000`). You can manually restore from these backups if needed.
+
+### Performance issues
+If you have hundreds of TODOs, consider:
+- Archiving completed tasks periodically
+- Using multiple TODO lists for different projects
+- Filtering by status to focus on active tasks
 
 ## 🤝 Contributing
 
