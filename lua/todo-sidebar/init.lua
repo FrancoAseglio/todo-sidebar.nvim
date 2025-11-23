@@ -11,17 +11,30 @@ local M = {}
 -- Public Module Functions
 -- ==========================
 
--- Setup the plugin with custom config
+--- Setup the plugin with custom configuration
+--- @param opts table|nil Optional configuration table
 function M.setup(opts)
-	config.setup(opts)
-	todo.init()
+	-- Validate and setup configuration
+	local setup_ok, err = pcall(config.setup, opts)
+	if not setup_ok then
+		vim.notify("TODO Sidebar: Configuration error: " .. tostring(err), vim.log.levels.ERROR)
+		return
+	end
+	
+	-- Initialize TODO storage
+	local init_ok, init_err = pcall(todo.init)
+	if not init_ok then
+		vim.notify("TODO Sidebar: Initialization error: " .. tostring(init_err), vim.log.levels.ERROR)
+		return
+	end
+	
 	-- Set up global keymaps
 	keymaps.setup_global_keymaps(function()
 		M.toggle()
 	end)
 end
 
--- Opens or closes the TODO sidebar window
+--- Opens or closes the TODO sidebar window
 function M.toggle()
 	if window.is_valid() then
 		M.close()
@@ -30,7 +43,7 @@ function M.toggle()
 	end
 end
 
--- Opens the TODO sidebar
+--- Opens the TODO sidebar
 function M.open()
 	local keymap_actions = {
 		close = function()
@@ -56,19 +69,24 @@ function M.open()
 		end,
 	}
 
-	window.create(function(buf)
+	-- Create window with error handling
+	local ok, err = pcall(window.create, function(buf)
 		keymaps.setup_buffer_keymaps(buf, keymap_actions)
 	end, function()
 		M.close()
 	end)
+	
+	if not ok then
+		vim.notify("TODO Sidebar: Failed to open window: " .. tostring(err), vim.log.levels.ERROR)
+	end
 end
 
--- Closes the floating sidebar window and cleans up state
+--- Closes the floating sidebar window and cleans up state
 function M.close()
 	window.close()
 end
 
--- Toggle current line's TODO checkbox
+--- Toggle current line's TODO checkbox
 function M.toggle_check()
 	if not window.is_valid() then
 		return
@@ -87,17 +105,32 @@ function M.toggle_check()
 	end
 end
 
--- Add a new TODO via input prompt
+--- Add a new TODO via input prompt
 function M.add_item()
 	vim.ui.input({ prompt = "New TODO: " }, function(input)
 		if input and input ~= "" then
-			todo.add(input)
-			window.render()
+			-- Validate input length
+			if #input > 500 then
+				vim.notify("TODO Sidebar: TODO text is too long (max 500 characters)", vim.log.levels.WARN)
+				return
+			end
+			
+			-- Trim whitespace
+			input = input:match("^%s*(.-)%s*$")
+			
+			if input ~= "" then
+				local ok, err = pcall(todo.add, input)
+				if ok then
+					window.render()
+				else
+					vim.notify("TODO Sidebar: Failed to add item: " .. tostring(err), vim.log.levels.ERROR)
+				end
+			end
 		end
 	end)
 end
 
--- Delete the selected TODO
+--- Delete the selected TODO
 function M.delete_item()
 	if not window.is_valid() then
 		return
@@ -116,7 +149,7 @@ function M.delete_item()
 	end
 end
 
--- Toggles the pinned state of the TODO item under the cursor
+--- Toggles the pinned state of the TODO item under the cursor
 function M.toggle_pin()
 	if not window.is_valid() then
 		return
@@ -135,7 +168,7 @@ function M.toggle_pin()
 	end
 end
 
--- Edit selected TODO item
+--- Edit selected TODO item
 function M.edit_item()
 	if not window.is_valid() then
 		return
@@ -156,20 +189,35 @@ function M.edit_item()
 				default = todos[real_index].text,
 			}, function(input)
 				if input and input ~= "" then
-					todo.update_text(real_index, input)
-					window.render()
+					-- Validate input length
+					if #input > 500 then
+						vim.notify("TODO Sidebar: TODO text is too long (max 500 characters)", vim.log.levels.WARN)
+						return
+					end
+					
+					-- Trim whitespace
+					input = input:match("^%s*(.-)%s*$")
+					
+					if input ~= "" then
+						local ok, err = pcall(todo.update_text, real_index, input)
+						if ok then
+							window.render()
+						else
+							vim.notify("TODO Sidebar: Failed to update item: " .. tostring(err), vim.log.levels.ERROR)
+						end
+					end
 				end
 			end)
 		end
 	end
 end
 
--- Force re-rendering
+--- Force re-rendering of the sidebar
 function M.render()
 	window.render()
 end
 
--- Show help popup
+--- Show or hide the help popup
 function M.show_help()
 	display.toggle_help()
 	window.render()

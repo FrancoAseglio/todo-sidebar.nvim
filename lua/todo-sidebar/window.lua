@@ -7,17 +7,20 @@ local M = {}
 -- Window state
 local buf, win
 
--- Returns true if the sidebar window is currently open and valid
+--- Returns true if the sidebar window is currently open and valid
+--- @return boolean True if window is valid
 function M.is_valid()
 	return win and api.nvim_win_is_valid(win)
 end
 
--- Get current buffer and window handles
+--- Get current buffer and window handles
+--- @return number|nil, number|nil Buffer handle and window handle
 function M.get_handles()
 	return buf, win
 end
 
--- Constructs and returns the floating window configuration based on the sidebar position
+--- Constructs and returns the floating window configuration based on the sidebar position
+--- @return table Window configuration for nvim_open_win
 local function get_window_config()
 	local cfg = config.get()
 	local width = cfg.width
@@ -37,19 +40,23 @@ local function get_window_config()
 	}
 end
 
--- Creates the buffer with appropriate settings
+--- Creates the buffer with appropriate settings
+--- @return number Buffer handle
 local function create_buffer()
 	local buffer = api.nvim_create_buf(false, true)
 
-	-- Set buffer options
-	api.nvim_buf_set_option(buffer, "buftype", "nofile")
-	api.nvim_buf_set_option(buffer, "swapfile", false)
-	api.nvim_buf_set_option(buffer, "filetype", "todo-sidebar")
+	-- Set buffer options using the newer API
+	vim.bo[buffer].buftype = "nofile"
+	vim.bo[buffer].swapfile = false
+	vim.bo[buffer].filetype = "todo-sidebar"
+	vim.bo[buffer].modifiable = true
 
 	return buffer
 end
 
--- Sets up auto-close behavior
+--- Sets up auto-close behavior when leaving the buffer
+--- @param buffer number Buffer handle
+--- @param close_callback function Callback to execute when leaving buffer
 local function setup_auto_close(buffer, close_callback)
 	api.nvim_create_autocmd("BufLeave", {
 		buffer = buffer,
@@ -67,15 +74,18 @@ local function setup_auto_close(buffer, close_callback)
 	})
 end
 
--- Creates and opens the floating sidebar window
+--- Creates and opens the floating sidebar window
+--- @param keymap_callback function|nil Callback to set up buffer keymaps
+--- @param close_callback function|nil Callback to execute when closing
+--- @return number, number Buffer and window handles
 function M.create(keymap_callback, close_callback)
 	buf = create_buffer()
 
 	-- Open the floating window
 	win = api.nvim_open_win(buf, true, get_window_config())
 
-	-- Set window options
-	api.nvim_win_set_option(win, "cursorline", true)
+	-- Set window options using the newer API
+	vim.wo[win].cursorline = true
 
 	-- Set up keybindings
 	if keymap_callback then
@@ -91,7 +101,7 @@ function M.create(keymap_callback, close_callback)
 	return buf, win
 end
 
--- Closes the floating sidebar window and cleans up state
+--- Closes the floating sidebar window and cleans up state
 function M.close()
 	if win and api.nvim_win_is_valid(win) then
 		api.nvim_win_close(win, true)
@@ -100,7 +110,8 @@ function M.close()
 	end
 end
 
--- Get current cursor position in the window
+--- Get current cursor position in the window
+--- @return number|nil Line number (1-indexed) or nil if window is invalid
 function M.get_cursor_line()
 	if not M.is_valid() then
 		return nil
@@ -108,7 +119,7 @@ function M.get_cursor_line()
 	return api.nvim_win_get_cursor(win)[1]
 end
 
--- Force re-render
+--- Force re-render of the window content
 function M.render()
 	display.render(buf)
 end

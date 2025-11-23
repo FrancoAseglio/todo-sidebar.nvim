@@ -8,7 +8,9 @@ local M = {}
 local showing_help = false
 local ns_id = api.nvim_create_namespace("todo_sidebar")
 
--- Centers Help menu text
+-- Centers text within the sidebar window
+--- @param text string Text to center
+--- @return string Centered text with padding
 local function center(text)
 	local win_width = config.get_value("width") or config.defaults.width or 40
 	local display_width = vim.fn.strdisplaywidth(text)
@@ -29,7 +31,8 @@ local HELP_LINES = vim.tbl_map(center, {
 	"└──────────────────┘",
 })
 
--- Builds the full list of lines to display in the sidebar, including todos and help/hint
+--- Builds the full list of lines to display in the sidebar, including todos and help/hint
+--- @return table, table Display lines and sorted TODO items
 function M.get_display_lines()
 	local lines = {}
 	local sorted = todo.get_sorted()
@@ -67,7 +70,9 @@ function M.get_display_lines()
 	return lines, sorted
 end
 
--- Determines the highlight group to use for a given TODO item based on state
+--- Determines the highlight group to use for a given TODO item based on state
+--- @param todo_item table The TODO item to get highlight for
+--- @return string|nil Highlight group name or nil
 local function get_highlight_group(todo_item)
 	if todo_item.done then
 		return "Comment"
@@ -78,7 +83,8 @@ local function get_highlight_group(todo_item)
 	return nil
 end
 
--- Renders the current state of the TODO list in the floating window
+--- Renders the current state of the TODO list in the floating window
+--- @param buf number Buffer handle to render to
 function M.render(buf)
 	if not buf or not api.nvim_buf_is_valid(buf) then
 		return
@@ -86,7 +92,10 @@ function M.render(buf)
 
 	local lines, sorted_todos = M.get_display_lines()
 
+	-- Make buffer modifiable temporarily
+	vim.bo[buf].modifiable = true
 	api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+	vim.bo[buf].modifiable = false
 	api.nvim_buf_clear_namespace(buf, ns_id, 0, -1)
 
 	for i, todo_item in ipairs(sorted_todos) do
@@ -102,12 +111,13 @@ function M.render(buf)
 	api.nvim_buf_add_highlight(buf, ns_id, "Comment", total_lines - 1, 0, -1)
 end
 
--- Toggle help display
+--- Toggle help display
 function M.toggle_help()
 	showing_help = not showing_help
 end
 
--- Get namespace ID for highlights
+--- Get namespace ID for highlights
+--- @return number Namespace ID
 function M.get_namespace_id()
 	return ns_id
 end
